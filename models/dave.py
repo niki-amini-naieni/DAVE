@@ -245,28 +245,38 @@ class COTR(nn.Module):
 
         return location
 
-    def predict_density_map(self, backbone_features, bboxes):
-        bs, _, bb_h, bb_w = backbone_features.size()
+    def predict_density_map(self, backbone_features_main_img, backbone_features_exemplars, bboxes):
+        bs, _, bb_h, bb_w = backbone_features_main_img.size()
 
         # # prepare the encoder input
-        src = self.input_proj(backbone_features)
+        src = self.input_proj(backbone_features_exemplars)
         bs, c, h, w = src.size()
         pos_emb = self.pos_emb(bs, h, w, src.device).flatten(2).permute(2, 0, 1)
         src = src.flatten(2).permute(2, 0, 1)
 
         # push through the encoder
         if self.num_encoder_layers > 0:
-            if backbone_features.shape[2] * backbone_features.shape[3] > 6000:
+            if backbone_features_exemplars.shape[2] * backbone_features_exemplars.shape[3] > 6000:
                 enc = self.encoder.cpu()
-                memory = enc(src.cpu(), pos_emb.cpu(), src_key_padding_mask=None, src_mask=None).to(
-                    backbone_features.device)
+                memory_exemplars = enc(src.cpu(), pos_emb.cpu(), src_key_padding_mask=None, src_mask=None).to(
+                    backbone_features_exemplars.device)
             else:
-                memory = self.encoder(src, pos_emb, src_key_padding_mask=None, src_mask=None)
+                memory_exemplars = self.encoder(src, pos_emb, src_key_padding_mask=None, src_mask=None)
         else:
-            memory = src
+            memory_exemplars = src
+
+        if self.num_encoder_layers > 0:
+            if backbone_features_main_img.shape[2] * backbone_features_main_img.shape[3] > 6000:
+                enc = self.encoder.cpu()
+                memory_main_img = enc(src.cpu(), pos_emb.cpu(), src_key_padding_mask=None, src_mask=None).to(
+                    backbone_features_main_img.device)
+            else:
+                memory_main_img = self.encoder(src, pos_emb, src_key_padding_mask=None, src_mask=None)
+        else:
+            memory_main_img = src
 
         # prepare the decoder input
-        x = memory.permute(1, 2, 0).reshape(-1, self.emb_dim, bb_h, bb_w)
+        x = memory_exemplars.permute(1, 2, 0).reshape(-1, self.emb_dim, bb_h, bb_w)
 
         bboxes_ = torch.cat([
             torch.arange(
@@ -309,7 +319,7 @@ class COTR(nn.Module):
 
         if self.use_query_pos_emb:
             query_pos_emb = self.pos_emb(
-                bs, self.kernel_dim, self.kernel_dim, memory.device
+                bs, self.kernel_dim, self.kernel_dim, memory_exemplars.device
             ).flatten(2).permute(2, 0, 1).repeat(self.num_objects, 1, 1)
         else:
             query_pos_emb = None
@@ -317,7 +327,7 @@ class COTR(nn.Module):
         if self.num_decoder_layers > 0:
             weights = self.decoder(
                 objectness if objectness is not None else appearance,
-                appearance, memory, pos_emb, query_pos_emb
+                appearance, memory_exemplars, pos_emb, query_pos_emb
             )
         else:
             if objectness is not None and appearance is not None:
@@ -326,7 +336,7 @@ class COTR(nn.Module):
                 weights = (objectness if objectness is not None else appearance).unsqueeze(0)
 
         # prepare regression decoder input
-        x = memory.permute(1, 2, 0).reshape(-1, self.emb_dim, bb_h, bb_w)
+        x = memory_main_img.permute(1, 2, 0).reshape(-1, self.emb_dim, bb_h, bb_w)
 
         outputs_R = list()
         for i in range(weights.size(0)):
@@ -367,28 +377,31 @@ class COTR(nn.Module):
             outputs_R.append(_x)
         return correlation_maps, outputs_R, outputR
 
-    def forward(self, x_img, bboxes, name='', dmap=None, classes=None):
+    def forward(self, x_img, bboxes, name='', dmap=None, classes=None, x_img_exemplars=None):
+        if x_img_exemplars is None:
+            x_img_exemplars = x_img
         self.num_objects = bboxes.shape[1]
-        backbone_features = self.backbone(x_img)
-        bs, _, bb_h, bb_w = backbone_features.size()
+        backbone_features_main_img = self.backbone(x_img)
+        backbone_features_exemplars = self.backbone(x_img_exemplars)
+        bs, _, bb_h, bb_w = backbone_features_main_img.size()
 
         #####################
         # DETECTION STAGE
         #####################
 
         # LOCA low-shot counter for density map prediction
-        correlation_maps, outputs_R, outputR = self.predict_density_map(backbone_features, bboxes)
+        correlation_maps, outputs_R, outputR = self.predict_density_map(backbone_features_main_img, backbone_features_exemplars, bboxes)
 
         if self.det_train:
-            tblr = self.box_predictor(self.upscale(backbone_features), self.upscale(correlation_maps))
+            tblr = self.box_predictor(self.upscale(backbone_features_main_img), self.upscale(correlation_maps))
             location = self.compute_location(tblr)
             return outputs_R[-1], outputs_R[:-1], tblr, location
 
-        if backbone_features.shape[2] * backbone_features.shape[3] > 8000:
+        if backbone_features_main_img.shape[2] * backbone_features_main_img.shape[3] > 8000:
             self.box_predictor = self.box_predictor.cpu()
-            tblr = self.box_predictor(self.upscale(backbone_features.cpu()), self.upscale(correlation_maps.cpu()))
+            tblr = self.box_predictor(self.upscale(backbone_features_main_img.cpu()), self.upscale(correlation_maps.cpu()))
         else:
-            tblr = self.box_predictor(self.upscale(backbone_features), self.upscale(correlation_maps))
+            tblr = self.box_predictor(self.upscale(backbone_features_main_img), self.upscale(correlation_maps))
 
         generated_bboxes = self.generate_bbox(outputR, tblr)[0]
         bboxes_p = generated_bboxes.box
@@ -398,7 +411,7 @@ class COTR(nn.Module):
                 1, requires_grad=False
             ).to(bboxes_p.device).repeat_interleave(len(bboxes_p)).reshape(-1, 1),
             bboxes_p,
-        ], dim=1).to(backbone_features.device)
+        ], dim=1).to(backbone_features_main_img.device)
 
         #####################
         # VERIFICATION STAGE
@@ -415,7 +428,7 @@ class COTR(nn.Module):
             bboxes_ = bboxes_pred
 
         feat_vectors = roi_align(
-            backbone_features,
+            backbone_features_exemplars,
             boxes=bboxes_, output_size=self.kernel_dim,
             spatial_scale=1.0 / self.reduction, aligned=True
         ).permute(0, 2, 3, 1).reshape(
