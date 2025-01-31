@@ -14,6 +14,7 @@ import matplotlib.pyplot as plt
 import hub
 import torchvision.transforms.functional as F
 #from torchvision import Transforms as T
+import glob
 
 # fix the seed for reproducibility
 seed = 42
@@ -61,7 +62,8 @@ def demo(args):
     torch.cuda.set_device(gpu)
     device = torch.device(gpu)
 
-    img_names = list_files_recursive({}, "./Crystals")
+    img_names_list = glob.glob("./Crystals/*/*.jpg")
+    img_names = {img_name: [] for img_name in img_names_list}
 
     model = DataParallel(
         build_model(args).to(device),
