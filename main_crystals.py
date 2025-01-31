@@ -105,6 +105,7 @@ def demo(args):
         for exemplar in exemplar_data["exemplars"]:
             x0, y0, x1, y1 = exemplar[0], exemplar[1], exemplar[3], exemplar[4]
             exemplars.append((x0, y0, x1, y1))
+        exemplars = exemplars[:3]
         print(exemplars)
 
         bboxes = torch.tensor(exemplars)
