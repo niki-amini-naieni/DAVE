@@ -85,7 +85,7 @@ def demo(args):
     pred_boxes = {}
 
     for img_f_name in img_names:
-        image = Image.open(img_f_name)
+        image = Image.open(img_f_name).convert("RGB")
         width, height = image.size
         # Get exemplars.
         for sequence in exemplar_image_names:
@@ -96,13 +96,14 @@ def demo(args):
                 print("Using exemplar image: " + str(exemplar_image_name))
                 print("Using exemplars: " + str(exemplar_bbox_file_name))
                 break
-        exemplar_image = Image.open(exemplar_image_name)
+        exemplar_image = Image.open(exemplar_image_name).convert("RGB")
         with open(exemplar_bbox_file_name) as exemplar_file:
             exemplar_data = json.load(exemplar_file)
         exemplars = []
         for exemplar in exemplar_data["exemplars"]:
             x0, y0, x1, y1 = exemplar[0], exemplar[1], exemplar[3], exemplar[4]
             exemplars.append((x0, y0, x1, y1))
+        print(exemplars)
 
         bboxes = torch.tensor(exemplars)
 
