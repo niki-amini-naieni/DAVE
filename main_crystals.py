@@ -67,7 +67,7 @@ def demo(args):
 
     model = DataParallel(
         build_model(args).to(device),
-        device_ids=[gpu],
+        device_ids=[gpu, 1],
         output_device=gpu
     )
     model.load_state_dict(
