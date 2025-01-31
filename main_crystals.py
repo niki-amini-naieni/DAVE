@@ -107,10 +107,12 @@ def demo(args):
 
         bboxes = torch.tensor(exemplars)
 
-        img, bboxes, scale = resize(image, bboxes)
+        img, _, scale = resize(image, bboxes)
+        exemplar_img, bboxes, scale = resize(exemplar_image, bboxes)
         print("img shape: " + str(img.shape))
         img = img.unsqueeze(0).to(device)
         bboxes = bboxes.unsqueeze(0).to(device)
+        exemplar_image = exemplar_image.unsqueeze(0).to(device)
 
         denisty_map, _, tblr, predicted_bboxes = model(img, x_img_exemplars=exemplar_image, bboxes=bboxes)
         pred_boxes = predicted_bboxes.box.cpu() / torch.tensor([scale[0], scale[1], scale[0], scale[1]])
