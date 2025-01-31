@@ -47,15 +47,13 @@ def on_release(event):
 """
 exemplar_image_names = {"ma2035_023": "ma2035_023_internal_exemplar_image.jpg", "ma2035_024": "ma2035_024_internal_exemplar_image.jpg", "ma2035_039": "ma2035_039_internal_exemplar_image.jpg", "ma2035_040": "ma2035_040_internal_exemplar_image.jpg", "ma2035_069": "ma2035_069_internal_exemplar_image.jpg", "ma2035_072": "ma2035_072_internal_exemplar_image.jpg", "ma2035_169": "ma2035_169_internal_exemplar_image.jpg"}
 exemplar_bbox_file_names = {"ma2035_023": "ma2035_023_internal_exemplars.json", "ma2035_024": "ma2035_024_internal_exemplars.json", "ma2035_039": "ma2035_039_internal_exemplars.json", "ma2035_040": "ma2035_040_internal_exemplars.json", "ma2035_069": "ma2035_069_internal_exemplars.json", "ma2035_072": "ma2035_072_internal_exemplars.json", "ma2035_169": "ma2035_169_internal_exemplars.json"}
-def list_files_recursive(path='.'):
-    anno_json = {}
+def list_files_recursive(anno_json, path='.'):
     for entry in os.listdir(path):
         full_path = os.path.join(path, entry)
         if os.path.isdir(full_path):
             list_files_recursive(full_path)
         elif ".jpg" in entry:
             anno_json[full_path] = []
-    return anno_json
 
 @torch.no_grad()
 def demo(args):
@@ -63,7 +61,7 @@ def demo(args):
     torch.cuda.set_device(gpu)
     device = torch.device(gpu)
 
-    img_names = list_files_recursive("./Crystals")
+    img_names = list_files_recursive({}, "./Crystals")
 
     model = DataParallel(
         build_model(args).to(device),
