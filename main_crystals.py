@@ -100,7 +100,7 @@ def demo(args):
         with open(exemplar_bbox_file_name) as exemplar_file:
             exemplar_data = json.load(exemplar_file)
         exemplars = []
-        for exemplar in exemplar_data:
+        for exemplar in exemplar_data["exemplars"]:
             x0, y0, x1, y1 = exemplar[0], exemplar[1], exemplar[3], exemplar[4]
             exemplars.append((x0, y0, x1, y1))
 
