@@ -108,7 +108,7 @@ def demo(args):
         bboxes = torch.tensor(exemplars)
 
         img, _, scale = resize(image, bboxes)
-        exemplar_img, bboxes, scale = resize(exemplar_image, bboxes)
+        exemplar_image, bboxes, scale = resize(exemplar_image, bboxes)
         print("img shape: " + str(img.shape))
         img = img.unsqueeze(0).to(device)
         bboxes = bboxes.unsqueeze(0).to(device)
