@@ -51,7 +51,7 @@ def list_files_recursive(anno_json, path='.'):
     for entry in os.listdir(path):
         full_path = os.path.join(path, entry)
         if os.path.isdir(full_path):
-            list_files_recursive(full_path)
+            list_files_recursive(anno_json, full_path)
         elif ".jpg" in entry:
             anno_json[full_path] = []
 
