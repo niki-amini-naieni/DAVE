@@ -127,7 +127,7 @@ def demo(args):
             plt.gca().add_patch(rect)
         plt.axis("off")
         plt.show()
-        plt.savefig("vis" + "/".split(img_f_name)[-1])
+        plt.savefig("test.png")
         plt.close()
 
 if __name__ == '__main__':
