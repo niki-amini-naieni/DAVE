@@ -15,6 +15,7 @@ import hub
 import torchvision.transforms.functional as F
 #from torchvision import Transforms as T
 import glob
+import matplotlib.patches as patches
 
 # fix the seed for reproducibility
 seed = 42
@@ -116,10 +117,18 @@ def demo(args):
 
         denisty_map, _, tblr, predicted_bboxes = model(img, x_img_exemplars=exemplar_image, bboxes=bboxes)
         pred_boxes = predicted_bboxes.box.cpu() / torch.tensor([scale[0], scale[1], scale[0], scale[1]])
+        plt.imshow(image)
         for i in range(len(pred_boxes)):
             box = pred_boxes[i]
             xmin, ymin, xmax, ymax = box[0], box[1], box[2], box[3]
             x0, y0, box_w, box_h = xmin.item(), ymin.item(), (xmax - xmin).item(), (ymax - ymin).item()
+            rect = patches.Rectangle(
+            (x0, y0), box_w, box_h, linewidth=1, edgecolor="r", facecolor="none")
+            plt.gca().add_patch(rect)
+        plt.axis("off")
+        plt.show()
+        plt.savefig("vis_" + img_f_name)
+        plt.close()
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser('DAVE', parents=[get_argparser()])
