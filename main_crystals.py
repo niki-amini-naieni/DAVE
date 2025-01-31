@@ -85,6 +85,7 @@ def demo(args):
     # Make predictions.
     pred_boxes = {}
 
+    vis_ind = 1
     for img_f_name in img_names:
         image = Image.open(img_f_name).convert("RGB")
         width, height = image.size
@@ -127,7 +128,8 @@ def demo(args):
             plt.gca().add_patch(rect)
         plt.axis("off")
         plt.show()
-        plt.savefig("test.png")
+        plt.savefig(str(vis_ind) + ".png")
+        vis_ind +=1
         plt.close()
 
 if __name__ == '__main__':
