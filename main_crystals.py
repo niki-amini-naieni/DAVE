@@ -63,7 +63,7 @@ def demo(args):
     torch.cuda.set_device(gpu)
     device = torch.device(gpu)
 
-    img_names = list_files_recursive(args.video_dir)
+    img_names = list_files_recursive("./Crystals")
 
     model = DataParallel(
         build_model(args).to(device),
