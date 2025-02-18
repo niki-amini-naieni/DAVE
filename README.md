@@ -1,3 +1,6 @@
+![image](https://github.com/user-attachments/assets/93a5ff58-a50c-4939-98d6-51da4330ddf0)
+
+
 We wanted to share an update regarding this repository. We've developed a novel method, GeCo, which significantly outperforms the older approach in this repo by a large margin. You can check out the code and an easy-to-run demo [here](https://github.com/jerpelhan/GeCo).
 
  ---
